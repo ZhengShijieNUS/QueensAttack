@@ -1,7 +1,7 @@
 ./findAQ N k l w
 •N is the size of a side of the board
 •k is the numer of pieces that every queen must attack
-•l=0 is short formatN,k:number:and l=1 is long formatN,k:number:pc1,pc2,pc3...
+•l=0 is short format N,k:number:and l=1 is long format N,k:number:pc1,pc2,pc3...
 •w=0 is no wraparound, w=1 is wraparound
 
 
@@ -69,8 +69,11 @@
 01234567 01234567 01234567 01234567
 -------1 01100111 00000111 01110010
 
+bit=(size-p)%8
+block=(size-p)/8
+
 piece p:
-n=side,s=step
+n=side, s=step
 
 left:	p-s,
 right:	p+s,

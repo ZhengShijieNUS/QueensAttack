@@ -43,11 +43,19 @@ unsigned long long size = 0;
 unsigned int attack = 0;
 
 /// <summary>
+/// wraparound
+/// </summary>
+BOOL wraparound = FALSE;
+
+/// <summary>
 /// the number of blocks to store a board, each block equals a byte
 /// </summary>
-unsigned int blocks = 0;
+unsigned long long blocks = 0;
 
-unsigned int pieces = 0;
+/// <summary>
+/// the number of pieces on the board
+/// </summary>
+unsigned long long pieces = 0;
 
 /// <summary>
 /// Timer
@@ -75,10 +83,11 @@ int main(int argc, char* argv[])
 {
 	if (argc == 5)
 	{
+		memset(&side, 0xFF, sizeof(side));
 		side = (unsigned long long)atoll(argv[1]);
 		if (side > 4294967295)
 		{
-			printf("N must be less than 65536\r\n");
+			printf("N must be less than 4294967295\r\n");
 			exit(FALSE);
 		}
 
@@ -106,7 +115,9 @@ int main(int argc, char* argv[])
 
 	BOARD* Board = InitializeBoard(blocks, size);
 
-
+	/*
+	* 循环直到棋子布满棋盘
+	*/
 	while (pieces < size)
 	{
 		AddPieceToBoard(Board, blocks);
@@ -115,7 +126,7 @@ int main(int argc, char* argv[])
 		//PrintBoard(Board, blocks, size, side);
 		//printf("i:%lld, pieces:%d\r\n", i, pieces);
 	}
-	printf("pieces:%d\r\n", pieces);
+	printf("pieces on board: %d\r\n", pieces);
 	ReleaseBoard(Board);
 	exit(TRUE);
 }
@@ -133,11 +144,49 @@ void ReleaseBoard(BOARD board[])
 	free(board);
 }
 
-BOOL CheckBoard(BOARD board[], unsigned int size)
+BOOL CheckBoard(BOARD board[], unsigned int size, unsigned int side, BOOL wraparound)
 {
+	do
+	{
+		size--;
+		int step = 1;
+		for (step = 1; step < side; step++)
+		{
+			/*求当前位置的余数，用余数判断是否出左右边界
+			* m+step>side，出右边界
+			* m-step<1，出左边界
+			*/
+			int m = size % side;
+			
+			/*
+			* p1:	left		p-step
+			* p2:	right		p+step
+			* p3:	top			p-step*side
+			* p4:	bottom		p+step*side
+			*
+			* p5:	lefttop		p-step-step*side
+			* p6:	righttop	p+step-step*side
+			* p7:	leftbottom	p-step+step*side
+			* p8:	rightbottom	p+step+step*side
+			*/
+			unsigned int p1, p2, p3, p4, p5, p6, p7, p8, p9;
 
+
+		}
+	} while (size > 0);
 
 	return FALSE;
+}
+
+BOOL GetPieceOnBoard(BOARD board[], unsigned int blocks, unsigned int size, unsigned int position)
+{
+	/*
+	* locate a piece on board
+	*/
+	int bit = (size - position) % 8;
+	int block = (size - position) / 8;
+
+	return (board[block] & 1 << bit) ? TRUE : FALSE;
 }
 
 /// <summary>
