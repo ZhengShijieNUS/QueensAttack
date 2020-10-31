@@ -171,6 +171,11 @@ BOOL CheckBoard(BOARD board[], unsigned int size, unsigned int side, BOOL wrapar
 			*/
 			unsigned int p1, p2, p3, p4, p5, p6, p7, p8, p9;
 
+			
+
+			p1 = size - step;
+
+
 
 		}
 	} while (size > 0);
