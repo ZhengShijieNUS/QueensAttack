@@ -26,6 +26,18 @@ typedef struct {
 	BOARD Board[];
 };
 
+typedef enum {
+	NONE=0,
+	EDGE_RIGHT = 1,
+	EDGE_BOTTOM = 2,
+	EDGE_LEFT = 4,
+	EDGE_TOP = 8,
+	CORNER_RIGHTBOTTOM = 3,
+	CORNER_LEFTBOTOM = 6,
+	CORNER_LEFTTOP = 12,
+	CORNER_RIGHTTOP = 9
+} EDGE;
+
 
 /// <summary>
 /// the size of a side of the board
@@ -62,16 +74,8 @@ unsigned long long pieces = 0;
 /// </summary>
 BOOL TimerEnabled = FALSE;
 
-/// <summary>
-/// Timer thread
-/// </summary>
-HANDLE TimerThread;
-DWORD WINAPI Timer(LPVOID lpParam);
-void StartTimer();
-void StopTimer();
-
 void PrintBoard(BOARD board[], unsigned int blocks, unsigned int size, unsigned int side);
-BOOL CheckBoard(BOARD board[], unsigned int size);
+BOOL CheckBoard(BOARD board[], unsigned int size, unsigned int side, BOOL wraparound);
 BOARD* AddPieceToBoard(BOARD board[], unsigned int blocks);
 BOARD* RemovePieceFromBoard(BOARD board[], unsigned int blocks);
 unsigned int GetPiecesCount(BOARD board[], unsigned int blocks, unsigned int size);
@@ -109,9 +113,8 @@ int main(int argc, char* argv[])
 
 	}
 
-	printf("Run with %d(%d*%d) board in %d blocks(bytes),every queen must attack %d.\r\n", size, side, side, blocks, attack);
+	printf("Run with %lld(%lld*%lld) board in %lld blocks(bytes),every queen must attack %d.\r\n", size, side, side, blocks, attack);
 
-	StartTimer();
 
 	BOARD* Board = InitializeBoard(blocks, size);
 
@@ -122,11 +125,12 @@ int main(int argc, char* argv[])
 	{
 		AddPieceToBoard(Board, blocks);
 		pieces = GetPiecesCount(Board, blocks, size);
-		//i++;
 		//PrintBoard(Board, blocks, size, side);
-		//printf("i:%lld, pieces:%d\r\n", i, pieces);
+		//printf("pieces:%lld\r\n",  pieces);
+		BOOL result = CheckBoard(Board, size, side, FALSE);
+		printf("result: %d.\r\n", result);
 	}
-	printf("pieces on board: %d\r\n", pieces);
+	printf("pieces on board: %lld\r\n", pieces);
 	ReleaseBoard(Board);
 	exit(TRUE);
 }
@@ -146,18 +150,56 @@ void ReleaseBoard(BOARD board[])
 
 BOOL CheckBoard(BOARD board[], unsigned int size, unsigned int side, BOOL wraparound)
 {
+	//current position
+	unsigned int p = size;
 	do
 	{
-		size--;
+		p--;
+
+		/*
+		*	08 07 06
+		*	05 04 03
+		*	02 01 00
+		*
+		*	15 14 13 12
+		*	11 10 09 08
+		*	07 06 05 04
+		*	03 02 01 00
+		*
+		*	24 23 22 21 20
+		*	19 18 17 16 15
+		*	14 13 12 11 10
+		*	09 08 07 06 05
+		*	04 03 02 01 00
+		*/
+
+		/*
+		*	当前位置的余数m=p%side
+		*	当前位置的商n=p/side
+		*
+		*	m==side-1				在左边界
+		*	m==0					在右边界
+		*	n==(size-1)/side		在上边界
+		*	n==0					在下边界
+		*/
+
+		int m = p % side;
+		int n = p / side;
+
+		EDGE edge = NONE;
+
+		if (m == side - 1) edge = (EDGE)(EDGE_LEFT | edge);
+		if (m == 0) edge = (EDGE)(EDGE_RIGHT | edge);
+		if (n == (size - 1) / side) edge = (EDGE)(EDGE_TOP | edge);
+		if (n == 0) edge = (EDGE)(EDGE_BOTTOM | edge);
+
+		printf("p: %d, m: %d, n: %d, edge: %d\r\n", p, m, n, edge);
+
 		int step = 1;
 		for (step = 1; step < side; step++)
 		{
-			/*求当前位置的余数，用余数判断是否出左右边界
-			* m+step>side，出右边界
-			* m-step<1，出左边界
-			*/
-			int m = size % side;
-			
+
+
 			/*
 			* p1:	left		p-step
 			* p2:	right		p+step
@@ -171,25 +213,25 @@ BOOL CheckBoard(BOARD board[], unsigned int size, unsigned int side, BOOL wrapar
 			*/
 			unsigned int p1, p2, p3, p4, p5, p6, p7, p8, p9;
 
-			
+
 
 			p1 = size - step;
 
 
 
 		}
-	} while (size > 0);
+	} while (p > 0);
 
 	return FALSE;
 }
 
-BOOL GetPieceOnBoard(BOARD board[], unsigned int blocks, unsigned int size, unsigned int position)
+BOOL GetPieceOnBoard(BOARD board[], unsigned int blocks, unsigned int size, unsigned int cell)
 {
 	/*
 	* locate a piece on board
 	*/
-	int bit = (size - position) % 8;
-	int block = (size - position) / 8;
+	int bit = (size - cell) % 8;
+	int block = (size - cell) / 8;
 
 	return (board[block] & 1 << bit) ? TRUE : FALSE;
 }
@@ -313,29 +355,7 @@ void PrintBoard(BOARD board[], unsigned int blocks, unsigned int size, unsigned 
 	} while (blocks > 0);	//当blocks大于0时，说明仍然需要取下一字节
 }
 
-DWORD WINAPI Timer(LPVOID lpParam)
-{
-	while (TimerEnabled)
-	{
 
-		Sleep(1000);
-	}
-
-	return NULL;
-}
-
-void StartTimer()
-{
-	TimerEnabled = TRUE;
-	TimerThread = CreateThread(NULL, 0, Timer, NULL, 0, NULL);
-
-}
-
-void StopTimer()
-{
-	TimerEnabled = FALSE;
-	CloseHandle(TimerThread);
-}
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
 // Debug program: F5 or Debug > Start Debugging menu
 
