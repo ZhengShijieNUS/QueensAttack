@@ -27,7 +27,7 @@ typedef struct {
 };
 
 typedef enum {
-	NONE=0,
+	NONE = 0,
 	EDGE_RIGHT = 1,
 	EDGE_BOTTOM = 2,
 	EDGE_LEFT = 4,
@@ -193,30 +193,36 @@ BOOL CheckBoard(BOARD board[], unsigned int size, unsigned int side, BOOL wrapar
 		if (n == (size - 1) / side) edge = (EDGE)(EDGE_TOP | edge);
 		if (n == 0) edge = (EDGE)(EDGE_BOTTOM | edge);
 
-		printf("p: %d, m: %d, n: %d, edge: %d\r\n", p, m, n, edge);
-
 		int step = 1;
 		for (step = 1; step < side; step++)
 		{
 
-
 			/*
-			* p1:	left		p-step
-			* p2:	right		p+step
-			* p3:	top			p-step*side
-			* p4:	bottom		p+step*side
+			* p1:	left		p+step				wraparound:	p+step-side
+			* p2:	right		p-step
+			* p3:	top			p+step*side
+			* p4:	bottom		p-step*side
 			*
-			* p5:	lefttop		p-step-step*side
-			* p6:	righttop	p+step-step*side
-			* p7:	leftbottom	p-step+step*side
-			* p8:	rightbottom	p+step+step*side
+			* p5:	lefttop		p+step+step*side
+			* p6:	righttop	p-step+step*side
+			* p7:	leftbottom	p+step-step*side
+			* p8:	rightbottom	p-step-step*side
 			*/
 			unsigned int p1, p2, p3, p4, p5, p6, p7, p8, p9;
+			BOOL cell[8];
 
+			//left
+			if ((EDGE)(edge & EDGE_LEFT) == EDGE_LEFT)
+			{
+				cell[0] = FALSE;
+			}
+			else 
+			{
+				p1 = p + step - wraparound * side;
+				printf("p: %d, p1: %d\r\n", p, p1);
+			}
 
-
-			p1 = size - step;
-
+			
 
 
 		}
