@@ -27,15 +27,16 @@ typedef struct {
 };
 
 typedef enum {
-	NONE = 0,
-	EDGE_RIGHT = 1,
-	EDGE_BOTTOM = 2,
-	EDGE_LEFT = 4,
-	EDGE_TOP = 8,
-	CORNER_RIGHTBOTTOM = 3,
-	CORNER_LEFTBOTOM = 6,
-	CORNER_LEFTTOP = 12,
-	CORNER_RIGHTTOP = 9
+	NONE = 0b0000,
+	EDGE_RIGHT = 0b0001,
+	EDGE_BOTTOM = 0b0010,
+	EDGE_LEFT = 0b0100,
+	EDGE_TOP = 0b1000,
+	CORNER_RIGHTBOTTOM = 0b0011,
+	CORNER_LEFTBOTOM = 0b0110,
+	CORNER_RIGHTTOP = 0b1001,
+	CORNER_LEFTTOP = 0b1100,
+
 } EDGE;
 
 
@@ -198,17 +199,17 @@ BOOL CheckBoard(BOARD board[], unsigned int size, unsigned int side, BOOL wrapar
 		{
 
 			/*
-			* p1:	left		p+step				wraparound:	p+step-side
-			* p2:	right		p-step
-			* p3:	top			p+step*side
-			* p4:	bottom		p-step*side
+			* p[0]:	left		p+step				wraparound:	p+step-side*wraparound
+			* p[1]:	right		p-step				wraparound:	p-step+side*wraparound
+			* p[2]:	top			p+step*side			wraparound:	p+step*side-(size-1)*wraparound
+			* p[3]:	bottom		p-step*side			wraparound:	p-step*side+(size-1)*wraparound
 			*
-			* p5:	lefttop		p+step+step*side
-			* p6:	righttop	p-step+step*side
-			* p7:	leftbottom	p+step-step*side
-			* p8:	rightbottom	p-step-step*side
+			* p[4]:	lefttop		p+step+step*side	
+			* p[5]:	righttop	p-step+step*side
+			* p[6]:	leftbottom	p+step-step*side
+			* p[7]:	rightbottom	p-step-step*side
 			*/
-			unsigned int p1, p2, p3, p4, p5, p6, p7, p8, p9;
+			unsigned int p[8];
 			BOOL cell[8];
 
 			//left
@@ -216,13 +217,13 @@ BOOL CheckBoard(BOARD board[], unsigned int size, unsigned int side, BOOL wrapar
 			{
 				cell[0] = FALSE;
 			}
-			else 
+			
+			//right
+			if ((EDGE)(edge & EDGE_RIGHT) == EDGE_RIGHT)
 			{
-				p1 = p + step - wraparound * side;
-				printf("p: %d, p1: %d\r\n", p, p1);
+				cell[1] = FALSE;
 			}
 
-			
 
 
 		}
