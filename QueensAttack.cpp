@@ -199,10 +199,10 @@ BOOL CheckBoard(BOARD board[], unsigned int size, unsigned int side, BOOL wrapar
 		{
 
 			/*
-			* p[0]:	left		p+step				wraparound:	p+step-side*wraparound
-			* p[1]:	right		p-step				wraparound:	p-step+side*wraparound
-			* p[2]:	top			p+step*side			wraparound:	p+step*side-(size-1)*wraparound
-			* p[3]:	bottom		p-step*side			wraparound:	p-step*side+(size-1)*wraparound
+			* p[0]:	left		p+step				wraparound:	p+step-side
+			* p[1]:	right		p-step				wraparound:	p-step+side
+			* p[2]:	top			p+step*side			wraparound:	p+step*side-(size-1)
+			* p[3]:	bottom		p-step*side			wraparound:	p-step*side+(size-1)
 			*
 			* p[4]:	lefttop		p+step+step*side	
 			* p[5]:	righttop	p-step+step*side
