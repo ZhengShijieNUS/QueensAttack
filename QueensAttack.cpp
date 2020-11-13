@@ -14,7 +14,7 @@ typedef enum { FALSE, TRUE } BOOL;
 #endif
 
 #define BLOCKSIZE 8
-#define BOARD BYTE
+//#define BOARD BYTE
 #define EMPTY_CELL "[ ]"
 #define PIECE_CELL "[*]"
 
@@ -23,9 +23,11 @@ typedef unsigned long long ULL;
 
 
 typedef struct {
-	unsigned int pieces;
-	BOARD Board[];
-};
+	ULL pieces;
+	BYTE* board;
+}BOARD;
+
+
 
 typedef enum {
 	NONE = 0b0000,
@@ -63,6 +65,11 @@ ULL size = 0;
 int attack = 0;
 
 /// <summary>
+/// whether to print the location
+/// </summary>
+BOOL printlocation = FALSE;
+
+/// <summary>
 /// wraparound
 /// </summary>
 BOOL wraparound = FALSE;
@@ -82,31 +89,33 @@ ULL pieces = 0;
 /// </summary>
 BOOL TimerEnabled = FALSE;
 
-void PrintBoard(BOARD board[], unsigned int blocks, unsigned int size, unsigned int side);
-BOOL CheckBoard(BOARD board[], unsigned int size, unsigned int side, int attack, BOOL wraparound);
+void PrintBoard(BYTE board[], unsigned int blocks, unsigned int size, unsigned int side);
+void PrintBoardIndex(BYTE board[], unsigned int blocks, unsigned int size, unsigned int side);
+BOOL CheckBoard(BYTE board[], unsigned int size, unsigned int side, int attack, BOOL wraparound);
 COORDINATE GetCoordinate(unsigned int locationIndex, unsigned int side);
 ULL GetLocationIndex(COORDINATE* c, unsigned int side);
-BOARD* AddPieceToBoard(BOARD board[], unsigned int blocks);
-BOARD* RemovePieceFromBoard(BOARD board[], unsigned int blocks);
-BOOL GetPieceOnBoard(BOARD board[], unsigned int blocks, unsigned int size, unsigned int cell);
-unsigned int GetPiecesCount(BOARD board[], unsigned int blocks, unsigned int size);
-BOARD* InitializeBoard(unsigned int blocks, unsigned int size);
-void ReleaseBoard(BOARD board[]);
+BYTE* AddPieceToBoard(BYTE board[], unsigned int blocks);
+BYTE* RemovePieceFromBoard(BYTE board[], unsigned int blocks);
+BOOL GetPieceOnBoard(BYTE board[], unsigned int blocks, unsigned int size, unsigned int cell);
+unsigned int GetPiecesCount(BYTE board[], unsigned int blocks, unsigned int size);
+BYTE* InitializeBoard(unsigned int blocks, unsigned int size);
+void ReleaseBoard(BYTE board[]);
 
-BOOL CheckUp(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
-BOOL CheckDown(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
-BOOL CheckLeft(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
-BOOL CheckRight(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
-BOOL CheckLefttop(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
-BOOL CheckRighttop(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
-BOOL CheckLeftbottom(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
-BOOL CheckRightbottom(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
+BOOL CheckUp(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
+BOOL CheckDown(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
+BOOL CheckLeft(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
+BOOL CheckRight(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
+BOOL CheckLefttop(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
+BOOL CheckRighttop(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
+BOOL CheckLeftbottom(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
+BOOL CheckRightbottom(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
 
 int main(int argc, char* argv[])
 {
 	if (argc == 5)
 	{
-		side = (unsigned long long)atoll(argv[1]);
+
+		side = (ULL)atoll(argv[1]);	//the size of a side of the board
 		if (side > 4294967295)
 		{
 			printf("N must be less than 4294967295\r\n");
@@ -114,14 +123,23 @@ int main(int argc, char* argv[])
 		}
 
 		size = side * side;
-		attack = atoi(argv[2]);
+		attack = atoi(argv[2]);	//the numer of pieces that every queen must attack
 		if (attack > 9 || attack < 0)
 		{
 			printf("k must be between 0 and 9.\r\n");
 			exit(FALSE);
 		}
 
-		if (atoi(argv[4]) == 0)
+		if (atoi(argv[3]) == 0)	//format
+		{
+			printlocation = FALSE;
+		}
+		else
+		{
+			printlocation = TRUE;
+		}
+
+		if (atoi(argv[4]) == 0)	//wraparound
 		{
 			wraparound = FALSE;
 		}
@@ -148,42 +166,95 @@ int main(int argc, char* argv[])
 	printf("Run with %lld(%lld*%lld) board in %lld blocks(bytes),every queen must attack %d.\r\n", size, side, side, blocks, attack);
 
 
-	BOARD* Board = InitializeBoard(blocks, size);
+	BYTE* board = InitializeBoard(blocks, size);
+
+	BOARD* boards = NULL;
+	ULL boardsCount = 0;
 
 	/*
 	* 循环直到棋子布满棋盘
 	*/
 	while (pieces < size)
 	{
-		AddPieceToBoard(Board, blocks);
-		pieces = GetPiecesCount(Board, blocks, size);
+		AddPieceToBoard(board, blocks);
+		pieces = GetPiecesCount(board, blocks, size);
 
-		BOOL result = CheckBoard(Board, size, side, attack, wraparound);
+		BOOL result = CheckBoard(board, size, side, attack, wraparound);
 		//BOOL result = TRUE;
-		if (result == TRUE && pieces==8)
+		if (result == TRUE)
 		{
-			PrintBoard(Board, blocks, size, side);
-			printf("pieces:%lld\r\n",  pieces);
+			boardsCount++;
+
+			boards = (BOARD*)realloc(boards, boardsCount * sizeof(BOARD));
+			boards[boardsCount - 1].pieces = pieces;
+			boards[boardsCount - 1].board = InitializeBoard(blocks, size);
+			memcpy(boards[boardsCount - 1].board, board, blocks * sizeof(BYTE));
+
+			//PrintBoard(boards[boardsCount - 1].board, blocks, size, side);
+			//printf("pieces:%lld\r\n", boards[boardsCount - 1].pieces);
 		}
 	}
-	printf("pieces on board: %lld\r\n", pieces);
-	ReleaseBoard(Board);
+
+	printf("All boards exhausted.\r\n");
+
+	//Export result
+	ULL maxPieces = 0;
+	ULL i = 0;
+	for (i = 0; i < boardsCount; i++)
+	{
+		if (boards[i].pieces > maxPieces)
+		{
+			maxPieces = boards[i].pieces;
+		}
+	}
+
+	printf("Max pieces is:%d.\r\n", maxPieces);
+
+	for (i = 0; i < boardsCount; i++)
+	{
+		if (boards[i].pieces == maxPieces)
+		{
+			printf("%d, %d:%d:", side, attack, maxPieces);
+			if (printlocation == TRUE)
+			{
+				PrintBoardIndex(boards[i].board, blocks, size, side);
+			}
+
+
+			//PrintBoard(boards[i].board, blocks, size, side);
+			//printf("--------------------------------------------\r\n");
+		}
+	}
+
+
+	//Free memory
+	ReleaseBoard(board);
+
+	do
+	{
+		boardsCount--;
+		free(boards[boardsCount].board);
+	} while (boardsCount > 0);
+
+	free(boards);
+
+	//exit with success
 	exit(TRUE);
 }
 
-BOARD* InitializeBoard(unsigned int blocks, unsigned int size)
+BYTE* InitializeBoard(unsigned int blocks, unsigned int size)
 {
-	BOARD* board = (BOARD*)calloc(blocks, sizeof(BOARD));
+	BYTE* board = (BYTE*)calloc(blocks, sizeof(BYTE));
 
 	return board;
 }
 
-void ReleaseBoard(BOARD board[])
+void ReleaseBoard(BYTE board[])
 {
 	free(board);
 }
 
-BOOL CheckBoard(BOARD board[], unsigned int size, unsigned int side, int attack, BOOL wraparound)
+BOOL CheckBoard(BYTE board[], unsigned int size, unsigned int side, int attack, BOOL wraparound)
 {
 	//current position
 	ULL p = size;
@@ -242,7 +313,7 @@ BOOL CheckBoard(BOARD board[], unsigned int size, unsigned int side, int attack,
 
 
 
-		
+
 
 		continue;
 
@@ -326,7 +397,7 @@ BOOL CheckBoard(BOARD board[], unsigned int size, unsigned int side, int attack,
 
 	return TRUE;
 }
-BOOL CheckRightbottom(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
+BOOL CheckRightbottom(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
 {
 	BOOL result = FALSE;
 	ULL step = 1;
@@ -387,7 +458,7 @@ BOOL CheckRightbottom(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size
 	return result;
 }
 
-BOOL CheckLeftbottom(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
+BOOL CheckLeftbottom(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
 {
 	BOOL result = FALSE;
 	ULL step = 1;
@@ -446,7 +517,7 @@ BOOL CheckLeftbottom(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size,
 	return result;
 }
 
-BOOL CheckRighttop(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
+BOOL CheckRighttop(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
 {
 	BOOL result = FALSE;
 	ULL step = 1;
@@ -504,7 +575,7 @@ BOOL CheckRighttop(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, U
 	return result;
 }
 
-BOOL CheckLefttop(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
+BOOL CheckLefttop(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
 {
 	BOOL result = FALSE;
 	ULL step = 1;
@@ -559,7 +630,7 @@ BOOL CheckLefttop(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, UL
 }
 
 
-BOOL CheckRight(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
+BOOL CheckRight(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
 {
 	BOOL result = FALSE;
 	ULL step = 1;
@@ -606,7 +677,7 @@ BOOL CheckRight(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL 
 	return result;
 }
 
-BOOL CheckLeft(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
+BOOL CheckLeft(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
 {
 	BOOL result = FALSE;
 	ULL step = 1;
@@ -649,7 +720,7 @@ BOOL CheckLeft(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL s
 	return result;
 }
 
-BOOL CheckDown(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
+BOOL CheckDown(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
 {
 	BOOL result = FALSE;
 	ULL step = 1;
@@ -696,7 +767,7 @@ BOOL CheckDown(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL s
 	return result;
 }
 
-BOOL CheckUp(BOARD board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
+BOOL CheckUp(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
 {
 	BOOL result = FALSE;
 	ULL step = 1;
@@ -764,7 +835,7 @@ ULL GetLocationIndex(COORDINATE* c, unsigned int side)
 	return c->index;
 }
 
-BOOL GetPieceOnBoard(BOARD board[], unsigned int blocks, unsigned int size, unsigned int cell)
+BOOL GetPieceOnBoard(BYTE board[], unsigned int blocks, unsigned int size, unsigned int cell)
 {
 	/*
 	* locate a piece on board
@@ -781,7 +852,7 @@ BOOL GetPieceOnBoard(BOARD board[], unsigned int blocks, unsigned int size, unsi
 /// <param name="board">board address</param>
 /// <param name="size">board size</param>
 /// <returns>board address</returns>
-BOARD* AddPieceToBoard(BOARD board[], unsigned int blocks)
+BYTE* AddPieceToBoard(BYTE board[], unsigned int blocks)
 {
 	BOOL carry = FALSE;
 	unsigned int block = 0;
@@ -818,7 +889,7 @@ BOARD* AddPieceToBoard(BOARD board[], unsigned int blocks)
 	return board;
 }
 
-BOARD* RemovePieceFromBoard(BOARD board[], unsigned int blocks)
+BYTE* RemovePieceFromBoard(BYTE board[], unsigned int blocks)
 {
 	BOOL borrowed = FALSE;
 
@@ -826,7 +897,7 @@ BOARD* RemovePieceFromBoard(BOARD board[], unsigned int blocks)
 	return board;
 }
 
-unsigned int GetPiecesCount(BOARD board[], unsigned int blocks, unsigned int size)
+unsigned int GetPiecesCount(BYTE board[], unsigned int blocks, unsigned int size)
 {
 	unsigned int pieces = 0;
 	do
@@ -850,7 +921,32 @@ unsigned int GetPiecesCount(BOARD board[], unsigned int blocks, unsigned int siz
 	return pieces;
 }
 
-void PrintBoard(BOARD board[], unsigned int blocks, unsigned int size, unsigned int side)
+void PrintBoardIndex(BYTE board[], unsigned int blocks, unsigned int size, unsigned int side)
+{
+	do
+	{
+
+		//从0开始，所以需要最大数减一
+		blocks--;
+		unsigned int bit = 0;
+		do
+		{
+			//size也是从0开始，计算时需要最大数减一
+			bit = --size % 8;
+			//通过按位与运算得知该位是否为1
+			if ((board[blocks] & 1 << bit) > 0)
+			{
+				//printf("%d,", blocks * 8 + bit + 1);
+				int r = side * side - (blocks * 8 + bit);
+				printf("%d,", r);
+			}
+
+		} while (bit > 0);	//当bit大于0时，说明仍需要取下一位，
+	} while (blocks > 0);	//当blocks大于0时，说明仍然需要取下一字节
+	printf("\r\n");
+}
+
+void PrintBoard(BYTE board[], unsigned int blocks, unsigned int size, unsigned int side)
 {
 	/*
 	* 假设有如下5*5棋盘
