@@ -27,21 +27,6 @@ typedef struct {
 	BYTE* board;
 }BOARD;
 
-
-
-typedef enum {
-	NONE = 0b0000,
-	EDGE_RIGHT = 0b0001,
-	EDGE_BOTTOM = 0b0010,
-	EDGE_LEFT = 0b0100,
-	EDGE_TOP = 0b1000,
-	CORNER_RIGHTBOTTOM = 0b0011,
-	CORNER_LEFTBOTOM = 0b0110,
-	CORNER_RIGHTTOP = 0b1001,
-	CORNER_LEFTTOP = 0b1100,
-
-} EDGE;
-
 typedef struct {
 	unsigned int x;
 	unsigned int y;
@@ -83,11 +68,6 @@ ULL blocks = 0;
 /// the number of pieces on the board
 /// </summary>
 ULL pieces = 0;
-
-/// <summary>
-/// Timer
-/// </summary>
-BOOL TimerEnabled = FALSE;
 
 void PrintBoard(BYTE board[], unsigned int blocks, unsigned int size, unsigned int side);
 void PrintBoardIndex(BYTE board[], unsigned int blocks, unsigned int size, unsigned int side);
@@ -180,7 +160,6 @@ int main(int argc, char* argv[])
 		pieces = GetPiecesCount(board, blocks, size);
 
 		BOOL result = CheckBoard(board, size, side, attack, wraparound);
-		//BOOL result = TRUE;
 		if (result == TRUE)
 		{
 			boardsCount++;
@@ -220,9 +199,10 @@ int main(int argc, char* argv[])
 				PrintBoardIndex(boards[i].board, blocks, size, side);
 			}
 
-
-			//PrintBoard(boards[i].board, blocks, size, side);
-			//printf("--------------------------------------------\r\n");
+#ifdef DEBUG
+			PrintBoard(boards[i].board, blocks, size, side);
+			printf("--------------------------------------------\r\n");
+#endif
 		}
 	}
 
@@ -286,7 +266,10 @@ BOOL CheckBoard(BYTE board[], unsigned int size, unsigned int side, int attack, 
 		}
 
 		COORDINATE cc = GetCoordinate(p, side);
-		//printf("origin:%d(%d,%d)\r\n", p, cc.x, cc.y);
+
+#ifdef DEBUG
+		printf("origin:%d(%d,%d)\r\n", p, cc.x, cc.y);
+#endif
 		int k = 0;
 
 		BOOL* pieceAttacked = (BOOL*)malloc(size * sizeof(BOOL));
@@ -306,93 +289,15 @@ BOOL CheckBoard(BYTE board[], unsigned int size, unsigned int side, int attack, 
 
 		if (k != attack)
 		{
-			//printf("Piece %d(%d,%d) attacks %d more than %d, skip. \r\n", cc.index, cc.x, cc.y, k, attack);
+#ifdef DEBUG
+			printf("Piece %d(%d,%d) attacks %d more than %d, skip. \r\n", cc.index, cc.x, cc.y, k, attack);
+#endif
 			return FALSE;
 		}
-		//printf("-------------------------------------------------------------\r\n");
+#ifdef DEBUG
+		printf("-------------------------------------------------------------\r\n");
+#endif
 
-
-
-
-
-		continue;
-
-		/*
-		*	x=当前位置的余数m=p%side
-		*	y=当前位置的商n=p/side
-		*/
-		int m = p % side;
-		int n = p / side;
-
-
-		/*
-		*	m==side-1				在左边界
-		*	m==0					在右边界
-		*	n==(size-1)/side		在上边界
-		*	n==0					在下边界
-		*/
-
-		printf("p:%d,n:%d,m:%d\r\n", p, n, m);
-
-		EDGE edge = NONE;
-
-		if (m == side - 1) edge = (EDGE)(EDGE_LEFT | edge);
-		if (m == 0) edge = (EDGE)(EDGE_RIGHT | edge);
-		if (n == (size - 1) / side) edge = (EDGE)(EDGE_TOP | edge);
-		if (n == 0) edge = (EDGE)(EDGE_BOTTOM | edge);
-
-
-		//center;
-		//COORDINATE cc = GetCoordinate(p, side);
-
-		int step = 1;
-		for (step = 1; step < side; step++)
-		{
-			//COORDINATE  c1,	//left
-			//	c2, //right
-			//	c3, //top
-			//	c4, //bottom
-			//	c5, //lefttop
-			//	c6, //righttop
-			//	c7, //leftbottom
-			//	c8;	//rightbottom
-
-			COORDINATE c[8] = { {0,0,0} };
-
-
-			BOOL cell[8];
-
-			int i = 0;
-			for (i = 0; i <= 7; i++)
-			{
-
-
-			}
-
-			printf("step:%d\r\n", step);
-			printf("(%d,%d)\t(%d,%d)\t(%d,%d)\r\n", c[4].x, c[4].y, c[2].x, c[2].y, c[5].x, c[5].y);
-			printf("(%d,%d)\t(%d,%d)\t(%d,%d)\r\n", c[0].x, c[0].y, cc.x, cc.y, c[1].x, c[1].y);
-			printf("(%d,%d)\t(%d,%d)\t(%d,%d)\r\n", c[6].x, c[6].y, c[3].x, c[3].y, c[7].x, c[7].y);
-			printf("-------------------------------------------------------------\r\n");
-
-
-
-			/*
-			* p1:	left		p+step				wraparound:	p1-side		wraparound-condition:	m+step>=side
-			* p2:	right		p-step				wraparound:	p2+side		wraparound-condition:	m-step<0
-			* p3:	top			p+step*side			wraparound:	p3-size		wraparound-condition:	p3>size
-			* p4:	bottom		p-step*side			wraparound:	p4+size		wraparound-condition:	p4<0
-			*
-			* p5:	lefttop		p+step+step*side
-			* p6:	righttop	p-step+step*side
-			* p7:	leftbottom	p+step-step*side
-			* p8:	rightbottom	p-step-step*side
-			*/
-			int p1, p2, p3, p4, p5, p6, p7, p8;
-
-
-		}
-		printf("\r\n");
 	} while (p > 0);
 
 	return TRUE;
@@ -442,12 +347,14 @@ BOOL CheckRightbottom(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size,
 
 		if (pieceAttacked[p.index] == TRUE)
 		{
-			//printf("CheckRightbottom piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+#ifdef DEBUG
+			printf("CheckRightbottom piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+#endif
 			break;
 		}
-
-		//printf("CheckRightbottom\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
-
+#ifdef DEBUG
+		printf("CheckRightbottom\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+#endif
 		if (GetPieceOnBoard(board, blocks, size, p.index) == TRUE)
 		{
 			result = TRUE;
@@ -501,12 +408,14 @@ BOOL CheckLeftbottom(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, 
 
 		if (pieceAttacked[p.index] == TRUE)
 		{
-			//printf("CheckLeftbottom piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+#ifdef DEBUG
+			printf("CheckLeftbottom piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+#endif
 			break;
 		}
-
-		//printf("CheckLeftbottom\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
-
+#ifdef DEBUG
+		printf("CheckLeftbottom\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+#endif
 		if (GetPieceOnBoard(board, blocks, size, p.index) == TRUE)
 		{
 			result = TRUE;
@@ -559,11 +468,15 @@ BOOL CheckRighttop(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL
 
 		if (pieceAttacked[p.index] == TRUE)
 		{
-			//printf("CheckRighttop piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+#ifdef DEBUG
+			printf("CheckRighttop piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+#endif
 			break;
 		}
 
-		//printf("CheckRighttop\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+#ifdef DEBUG
+		printf("CheckRighttop\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+#endif	
 
 		if (GetPieceOnBoard(board, blocks, size, p.index) == TRUE)
 		{
@@ -613,11 +526,15 @@ BOOL CheckLefttop(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL
 
 		if (pieceAttacked[p.index] == TRUE)
 		{
-			//printf("CheckLefttop piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+#ifdef DEBUG
+			printf("CheckLefttop piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+#endif
 			break;
 		}
 
-		//printf("CheckLefttop\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+#ifdef DEBUG
+		printf("CheckLefttop\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+#endif
 
 		if (GetPieceOnBoard(board, blocks, size, p.index) == TRUE)
 		{
@@ -661,11 +578,14 @@ BOOL CheckRight(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL s
 
 		if (pieceAttacked[p.index] == TRUE)
 		{
-			//printf("CheckRight piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+#ifdef DEBUG
+			printf("CheckRight piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+#endif
 			break;
 		}
-
-		//printf("CheckRight\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+#ifdef DEBUG
+		printf("CheckRight\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+#endif
 
 		if (GetPieceOnBoard(board, blocks, size, p.index) == TRUE)
 		{
@@ -704,12 +624,15 @@ BOOL CheckLeft(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL si
 
 		if (pieceAttacked[p.index] == TRUE)
 		{
-			//printf("CheckLeft piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+#ifdef DEBUG
+			printf("CheckLeft piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+#endif
 			break;
 		}
 
-		//printf("CheckLeft\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
-
+#ifdef DEBUG
+		printf("CheckLeft\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+#endif
 		if (GetPieceOnBoard(board, blocks, size, p.index) == TRUE)
 		{
 			result = TRUE;
@@ -751,11 +674,16 @@ BOOL CheckDown(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL si
 
 		if (pieceAttacked[p.index] == TRUE)
 		{
-			//printf("CheckDown piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+#ifdef DEBUG
+			printf("CheckDown piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+#endif
+
 			break;
 		}
 
-		//printf("CheckDown\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+#ifdef DEBUG
+		printf("CheckDown\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+#endif
 
 		if (GetPieceOnBoard(board, blocks, size, p.index) == TRUE)
 		{
@@ -794,11 +722,15 @@ BOOL CheckUp(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side
 
 		if (pieceAttacked[p.index] == TRUE)
 		{
-			//printf("CheckUp piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+#ifdef DEBUG
+			printf("CheckUp piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+#endif
 			break;
 		}
 
-		//printf("CheckUp\t\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+#ifdef DEBUG
+		printf("CheckUp\t\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+#endif
 
 		if (GetPieceOnBoard(board, blocks, size, p.index) == TRUE)
 		{
@@ -842,7 +774,9 @@ BOOL GetPieceOnBoard(BYTE board[], unsigned int blocks, unsigned int size, unsig
 	*/
 	int bit = cell % 8;
 	int block = cell / 8;
-	//printf("cell:%d,bit:%d,block:%d\r\n",cell,bit,block);
+#ifdef DEBUG
+	printf("cell:%d,bit:%d,block:%d\r\n",cell,bit,block);
+#endif
 	return (board[block] & 1 << bit) ? TRUE : FALSE;
 }
 
@@ -936,7 +870,6 @@ void PrintBoardIndex(BYTE board[], unsigned int blocks, unsigned int size, unsig
 			//通过按位与运算得知该位是否为1
 			if ((board[blocks] & 1 << bit) > 0)
 			{
-				//printf("%d,", blocks * 8 + bit + 1);
 				int r = side * side - (blocks * 8 + bit);
 				printf("%d,", r);
 			}
@@ -989,15 +922,3 @@ void PrintBoard(BYTE board[], unsigned int blocks, unsigned int size, unsigned i
 		} while (bit > 0);	//当bit大于0时，说明仍需要取下一位，
 	} while (blocks > 0);	//当blocks大于0时，说明仍然需要取下一字节
 }
-
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
