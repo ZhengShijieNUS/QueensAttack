@@ -1,26 +1,30 @@
 ﻿// QueensAttack.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
+
 #include <iostream>
 #include <time.h>
 #include <stdlib.h>
 #include <stdbool.h>
+
 #include <Windows.h>
 
-#ifdef WIN32
-
-#else
-typedef enum { FALSE, TRUE } BOOL;
-#endif
-
 #define BLOCKSIZE 8
-//#define BOARD BYTE
 #define EMPTY_CELL "[ ]"
 #define PIECE_CELL "[*]"
 
-typedef unsigned char BYTE;
+#ifdef MPI
+#define ULL	MPI_UNSIGNED_LONG_LONG
+#define UL	MPI_UNSIGNED_LONG
+#else
 typedef unsigned long long ULL;
+typedef unsigned long UL;
+#endif
 
+#ifndef _MINWINDEF_
+typedef unsigned char BYTE;
+typedef enum { FALSE, TRUE } BOOL;
+#endif
 
 typedef struct {
 	ULL pieces;
@@ -28,26 +32,42 @@ typedef struct {
 }BOARD;
 
 typedef struct {
-	unsigned int x;
-	unsigned int y;
+	UL x;
+	UL y;
 	ULL index;
 }COORDINATE;
 
 
+/*
+* 4,294,967,295 is the max value of a side,
+*/
 /// <summary>
 /// the size of a side of the board
 /// </summary>
-ULL side = 0;
+UL side = 0;
 
+/*
+* the unsigned long long max value is 18446744073709551615, so this is the limit of a board size.
+*/
 /// <summary>
 /// total size of the board
 /// </summary>
 ULL size = 0;
 
 /// <summary>
+/// the number of blocks to store a board, each block equals a byte
+/// </summary>
+ULL blocks = 0;
+
+/// <summary>
+/// the number of pieces on the board
+/// </summary>
+ULL pieces = 0;
+
+/// <summary>
 /// the numer of pieces that every queen must attack
 /// </summary>
-int attack = 0;
+BYTE attack = 0;
 
 /// <summary>
 /// whether to print the location
@@ -60,49 +80,105 @@ BOOL printlocation = FALSE;
 BOOL wraparound = FALSE;
 
 /// <summary>
-/// the number of blocks to store a board, each block equals a byte
+/// Initialize a new board
 /// </summary>
-ULL blocks = 0;
+/// <param name="blocks">how many blocks</param>
+/// <param name="size">how many cells on a board</param>
+/// <returns></returns>
+BYTE* InitializeBoard(ULL blocks, ULL size);
 
 /// <summary>
-/// the number of pieces on the board
+/// Add a piece on board sequentially 
 /// </summary>
-ULL pieces = 0;
+/// <param name="board">board address</param>
+/// <param name="size">board size</param>
+/// <returns>board address</returns>
+BYTE* AddPieceToBoard(BYTE board[], ULL blocks);
 
-void PrintBoard(BYTE board[], unsigned int blocks, unsigned int size, unsigned int side);
-void PrintBoardIndex(BYTE board[], unsigned int blocks, unsigned int size, unsigned int side);
-BOOL CheckBoard(BYTE board[], unsigned int size, unsigned int side, int attack, BOOL wraparound);
-COORDINATE GetCoordinate(unsigned int locationIndex, unsigned int side);
+/// <summary>
+/// Get how many pieces on the board
+/// </summary>
+/// <param name="board">board address</param>
+/// <param name="blocks">the number of blocks of the board</param>
+/// <param name="size">the number of the size of the board</param>
+/// <returns>the number of pieces</returns>
+ULL GetPiecesCount(BYTE board[], ULL blocks, ULL size);
+
+/// <summary>
+/// Check a board 
+/// </summary>
+/// <param name="board">board address</param>
+/// <param name="size">the number of the size of the board</param>
+/// <param name="side"></param>
+/// <param name="attack"></param>
+/// <param name="wraparound"></param>
+/// <returns></returns>
+BOOL CheckBoard(BYTE board[], ULL size, UL side, BYTE attack, BOOL wraparound);
+
+void PrintBoard(BYTE board[], ULL blocks, ULL size, UL side);
+
+/// <summary>
+/// Print a board cell location
+/// </summary>
+/// <param name="board">board address</param>
+/// <param name="blocks"></param>
+/// <param name="size"></param>
+/// <param name="side"></param>
+void PrintBoardIndex(BYTE board[], ULL blocks, ULL size, ULL side);
+
+/// <summary>
+/// Get the coordinate of a location
+/// </summary>
+/// <param name="locationIndex"></param>
+/// <param name="side"></param>
+/// <returns></returns>
+COORDINATE GetCoordinate(ULL locationIndex, UL side);
+
+/// <summary>
+/// Get location from a coordinate
+/// </summary>
+/// <param name="c"></param>
+/// <param name="side"></param>
+/// <returns></returns>
 ULL GetLocationIndex(COORDINATE* c, unsigned int side);
-BYTE* AddPieceToBoard(BYTE board[], unsigned int blocks);
+
 BYTE* RemovePieceFromBoard(BYTE board[], unsigned int blocks);
-BOOL GetPieceOnBoard(BYTE board[], unsigned int blocks, unsigned int size, unsigned int cell);
-unsigned int GetPiecesCount(BYTE board[], unsigned int blocks, unsigned int size);
-BYTE* InitializeBoard(unsigned int blocks, unsigned int size);
+
+/// <summary>
+/// Get the piece on a board
+/// </summary>
+/// <param name="board"></param>
+/// <param name="blocks"></param>
+/// <param name="size"></param>
+/// <param name="cell"></param>
+/// <returns></returns>
+BOOL GetPieceOnBoard(BYTE board[], ULL blocks, ULL size, ULL cell);
+
+
 void ReleaseBoard(BYTE board[]);
 
-BOOL CheckUp(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
-BOOL CheckDown(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
-BOOL CheckLeft(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
-BOOL CheckRight(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
-BOOL CheckLefttop(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
-BOOL CheckRighttop(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
-BOOL CheckLeftbottom(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
-BOOL CheckRightbottom(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound);
+BOOL CheckUp(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL side, BOOL pieceAttacked[], BOOL wraparound);
+BOOL CheckDown(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL side, BOOL pieceAttacked[], BOOL wraparound);
+BOOL CheckLeft(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL side, BOOL pieceAttacked[], BOOL wraparound);
+BOOL CheckRight(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL side, BOOL pieceAttacked[], BOOL wraparound);
+BOOL CheckLefttop(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL side, BOOL pieceAttacked[], BOOL wraparound);
+BOOL CheckRighttop(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL side, BOOL pieceAttacked[], BOOL wraparound);
+BOOL CheckLeftbottom(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL side, BOOL pieceAttacked[], BOOL wraparound);
+BOOL CheckRightbottom(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL side, BOOL pieceAttacked[], BOOL wraparound);
 
 int main(int argc, char* argv[])
 {
 	if (argc == 5)
 	{
 
-		side = (ULL)atoll(argv[1]);	//the size of a side of the board
+		side = (UL)atol(argv[1]);	//the size of a side of the board
 		if (side > 4294967295)
 		{
 			printf("N must be less than 4294967295\r\n");
 			exit(FALSE);
 		}
-
 		size = side * side;
+
 		attack = atoi(argv[2]);	//the numer of pieces that every queen must attack
 		if (attack > 9 || attack < 0)
 		{
@@ -143,7 +219,7 @@ int main(int argc, char* argv[])
 
 	}
 
-	printf("Run with %lld(%lld*%lld) board in %lld blocks(bytes),every queen must attack %d.\r\n", size, side, side, blocks, attack);
+	printf("Run with %llu(%lu*%lu) board in %llu blocks(bytes),every queen must attack %d.\r\n", size, side, side, blocks, attack);
 
 
 	BYTE* board = InitializeBoard(blocks, size);
@@ -168,10 +244,12 @@ int main(int argc, char* argv[])
 			boards[boardsCount - 1].pieces = pieces;
 			boards[boardsCount - 1].board = InitializeBoard(blocks, size);
 			memcpy(boards[boardsCount - 1].board, board, blocks * sizeof(BYTE));
-
-			//PrintBoard(boards[boardsCount - 1].board, blocks, size, side);
-			//printf("pieces:%lld\r\n", boards[boardsCount - 1].pieces);
 		}
+#ifdef PRINTEVERYBOARD
+		PrintBoard(board, blocks, size, side);
+		printf("pieces:%lld\r\n", pieces);
+		printf("--------------------------------------------\r\n");
+#endif
 	}
 
 	printf("All boards exhausted.\r\n");
@@ -187,24 +265,24 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	printf("Max pieces is:%d.\r\n", maxPieces);
+	printf("Max pieces is:%llu.\r\n", maxPieces);
 
 	for (i = 0; i < boardsCount; i++)
 	{
 		if (boards[i].pieces == maxPieces)
 		{
-			printf("%d, %d:%d:", side, attack, maxPieces);
+			printf("%lu, %d:%llu:", side, attack, maxPieces);
 			if (printlocation == TRUE)
 			{
 				PrintBoardIndex(boards[i].board, blocks, size, side);
 			}
 
-#ifdef DEBUG
+#ifdef PRINTBOARD
 			PrintBoard(boards[i].board, blocks, size, side);
 			printf("--------------------------------------------\r\n");
 #endif
 		}
-	}
+		}
 
 
 	//Free memory
@@ -220,9 +298,9 @@ int main(int argc, char* argv[])
 
 	//exit with success
 	exit(TRUE);
-}
+	}
 
-BYTE* InitializeBoard(unsigned int blocks, unsigned int size)
+BYTE* InitializeBoard(ULL blocks, ULL size)
 {
 	BYTE* board = (BYTE*)calloc(blocks, sizeof(BYTE));
 
@@ -234,7 +312,7 @@ void ReleaseBoard(BYTE board[])
 	free(board);
 }
 
-BOOL CheckBoard(BYTE board[], unsigned int size, unsigned int side, int attack, BOOL wraparound)
+BOOL CheckBoard(BYTE board[], ULL size, UL side, BYTE attack, BOOL wraparound)
 {
 	//current position
 	ULL p = size;
@@ -268,9 +346,9 @@ BOOL CheckBoard(BYTE board[], unsigned int size, unsigned int side, int attack, 
 		COORDINATE cc = GetCoordinate(p, side);
 
 #ifdef DEBUG
-		printf("origin:%d(%d,%d)\r\n", p, cc.x, cc.y);
+		printf("origin cell:%llu(%lu,%lu)\r\n", p, cc.x, cc.y);
 #endif
-		int k = 0;
+		BYTE k = 0;
 
 		BOOL* pieceAttacked = (BOOL*)malloc(size * sizeof(BOOL));
 		memset(pieceAttacked, FALSE, size * sizeof(BOOL));
@@ -290,7 +368,7 @@ BOOL CheckBoard(BYTE board[], unsigned int size, unsigned int side, int attack, 
 		if (k != attack)
 		{
 #ifdef DEBUG
-			printf("Piece %d(%d,%d) attacks %d more than %d, skip. \r\n", cc.index, cc.x, cc.y, k, attack);
+			printf("Piece %llu(%lu,%lu) attacks %d more than %d, skip. \r\n", cc.index, cc.x, cc.y, k, attack);
 #endif
 			return FALSE;
 		}
@@ -302,10 +380,10 @@ BOOL CheckBoard(BYTE board[], unsigned int size, unsigned int side, int attack, 
 
 	return TRUE;
 }
-BOOL CheckRightbottom(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
+BOOL CheckRightbottom(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL side, BOOL pieceAttacked[], BOOL wraparound)
 {
 	BOOL result = FALSE;
-	ULL step = 1;
+	UL step = 1;
 	for (step = 1; step < side; step++)
 	{
 		COORDINATE p;
@@ -348,12 +426,12 @@ BOOL CheckRightbottom(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size,
 		if (pieceAttacked[p.index] == TRUE)
 		{
 #ifdef DEBUG
-			printf("CheckRightbottom piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+			printf("CheckRightbottom piece %llu(%lu,%lu) has been attacked.\r\n", p.index, p.x, p.y);
 #endif
 			break;
 		}
 #ifdef DEBUG
-		printf("CheckRightbottom\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+		printf("CheckRightbottom\tstep:%lu, %llu(%lu,%lu)\r\n", step, p.index, p.x, p.y);
 #endif
 		if (GetPieceOnBoard(board, blocks, size, p.index) == TRUE)
 		{
@@ -365,10 +443,10 @@ BOOL CheckRightbottom(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size,
 	return result;
 }
 
-BOOL CheckLeftbottom(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
+BOOL CheckLeftbottom(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL side, BOOL pieceAttacked[], BOOL wraparound)
 {
 	BOOL result = FALSE;
-	ULL step = 1;
+	UL step = 1;
 	for (step = 1; step < side; step++)
 	{
 		COORDINATE p;
@@ -409,12 +487,12 @@ BOOL CheckLeftbottom(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, 
 		if (pieceAttacked[p.index] == TRUE)
 		{
 #ifdef DEBUG
-			printf("CheckLeftbottom piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+			printf("CheckLeftbottom piece %llu(%lu,%lu) has been attacked.\r\n", p.index, p.x, p.y);
 #endif
 			break;
 		}
 #ifdef DEBUG
-		printf("CheckLeftbottom\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+		printf("CheckLeftbottom\t\tstep:%lu, %llu(%lu,%lu)\r\n", step, p.index, p.x, p.y);
 #endif
 		if (GetPieceOnBoard(board, blocks, size, p.index) == TRUE)
 		{
@@ -426,10 +504,10 @@ BOOL CheckLeftbottom(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, 
 	return result;
 }
 
-BOOL CheckRighttop(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
+BOOL CheckRighttop(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL side, BOOL pieceAttacked[], BOOL wraparound)
 {
 	BOOL result = FALSE;
-	ULL step = 1;
+	UL step = 1;
 	for (step = 1; step < side; step++)
 	{
 		COORDINATE p;
@@ -469,13 +547,13 @@ BOOL CheckRighttop(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL
 		if (pieceAttacked[p.index] == TRUE)
 		{
 #ifdef DEBUG
-			printf("CheckRighttop piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+			printf("CheckRighttop piece %llu(%lu,%lu) has been attacked.\r\n", p.index, p.x, p.y);
 #endif
 			break;
 		}
 
 #ifdef DEBUG
-		printf("CheckRighttop\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+		printf("CheckRighttop\t\tstep:%lu, %llu(%lu,%lu)\r\n", step, p.index, p.x, p.y);
 #endif	
 
 		if (GetPieceOnBoard(board, blocks, size, p.index) == TRUE)
@@ -488,10 +566,10 @@ BOOL CheckRighttop(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL
 	return result;
 }
 
-BOOL CheckLefttop(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
+BOOL CheckLefttop(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL side, BOOL pieceAttacked[], BOOL wraparound)
 {
 	BOOL result = FALSE;
-	ULL step = 1;
+	UL step = 1;
 	for (step = 1; step < side; step++)
 	{
 		COORDINATE p;
@@ -527,13 +605,13 @@ BOOL CheckLefttop(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL
 		if (pieceAttacked[p.index] == TRUE)
 		{
 #ifdef DEBUG
-			printf("CheckLefttop piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+			printf("CheckLefttop piece %llu(%lu,%lu) has been attacked.\r\n", p.index, p.x, p.y);
 #endif
 			break;
 		}
 
 #ifdef DEBUG
-		printf("CheckLefttop\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+		printf("CheckLefttop\t\tstep:%lu, %llu(%lu,%lu)\r\n", step, p.index, p.x, p.y);
 #endif
 
 		if (GetPieceOnBoard(board, blocks, size, p.index) == TRUE)
@@ -547,10 +625,10 @@ BOOL CheckLefttop(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL
 }
 
 
-BOOL CheckRight(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
+BOOL CheckRight(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL side, BOOL pieceAttacked[], BOOL wraparound)
 {
 	BOOL result = FALSE;
-	ULL step = 1;
+	UL step = 1;
 	for (step = 1; step < side; step++)
 	{
 		COORDINATE p;
@@ -579,12 +657,12 @@ BOOL CheckRight(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL s
 		if (pieceAttacked[p.index] == TRUE)
 		{
 #ifdef DEBUG
-			printf("CheckRight piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+			printf("CheckRight piece %llu(%lu,%lu) has been attacked.\r\n", p.index, p.x, p.y);
 #endif
 			break;
 		}
 #ifdef DEBUG
-		printf("CheckRight\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+		printf("CheckRight\t\tstep:%lu, %llu(%lu,%lu)\r\n", step, p.index, p.x, p.y);
 #endif
 
 		if (GetPieceOnBoard(board, blocks, size, p.index) == TRUE)
@@ -597,10 +675,10 @@ BOOL CheckRight(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL s
 	return result;
 }
 
-BOOL CheckLeft(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
+BOOL CheckLeft(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL side, BOOL pieceAttacked[], BOOL wraparound)
 {
 	BOOL result = FALSE;
-	ULL step = 1;
+	UL step = 1;
 	for (step = 1; step < side; step++)
 	{
 		COORDINATE p;
@@ -625,13 +703,13 @@ BOOL CheckLeft(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL si
 		if (pieceAttacked[p.index] == TRUE)
 		{
 #ifdef DEBUG
-			printf("CheckLeft piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+			printf("CheckLeft piece %llu(%lu,%lu) has been attacked.\r\n", p.index, p.x, p.y);
 #endif
 			break;
 		}
 
 #ifdef DEBUG
-		printf("CheckLeft\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+		printf("CheckLeft\t\tstep:%lu, %llu(%lu,%lu)\r\n", step, p.index, p.x, p.y);
 #endif
 		if (GetPieceOnBoard(board, blocks, size, p.index) == TRUE)
 		{
@@ -643,10 +721,10 @@ BOOL CheckLeft(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL si
 	return result;
 }
 
-BOOL CheckDown(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
+BOOL CheckDown(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL side, BOOL pieceAttacked[], BOOL wraparound)
 {
 	BOOL result = FALSE;
-	ULL step = 1;
+	UL step = 1;
 	for (step = 1; step < side; step++)
 	{
 		COORDINATE p;
@@ -675,14 +753,14 @@ BOOL CheckDown(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL si
 		if (pieceAttacked[p.index] == TRUE)
 		{
 #ifdef DEBUG
-			printf("CheckDown piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+			printf("CheckDown piece %llu(%lu,%lu) has been attacked.\r\n", p.index, p.x, p.y);
 #endif
 
 			break;
 		}
 
 #ifdef DEBUG
-		printf("CheckDown\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+		printf("CheckDown\t\tstep:%lu, %llu(%lu,%lu)\r\n", step, p.index, p.x, p.y);
 #endif
 
 		if (GetPieceOnBoard(board, blocks, size, p.index) == TRUE)
@@ -695,10 +773,10 @@ BOOL CheckDown(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL si
 	return result;
 }
 
-BOOL CheckUp(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side, BOOL pieceAttacked[], BOOL wraparound)
+BOOL CheckUp(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, UL side, BOOL pieceAttacked[], BOOL wraparound)
 {
 	BOOL result = FALSE;
-	ULL step = 1;
+	UL step = 1;
 	for (step = 1; step < side; step++)
 	{
 		COORDINATE p;
@@ -723,13 +801,13 @@ BOOL CheckUp(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side
 		if (pieceAttacked[p.index] == TRUE)
 		{
 #ifdef DEBUG
-			printf("CheckUp piece %d(%d,%d) has been attacked.\r\n", p.index, p.x, p.y);
+			printf("CheckUp piece %llu(%lu,%lu) has been attacked.\r\n", p.index, p.x, p.y);
 #endif
 			break;
 		}
 
 #ifdef DEBUG
-		printf("CheckUp\t\t\tstep:%d, %d(%d,%d)\r\n", step, p.index, p.x, p.y);
+		printf("CheckUp\t\t\tstep:%lu, %llu(%lu,%lu)\r\n", step, p.index, p.x, p.y);
 #endif
 
 		if (GetPieceOnBoard(board, blocks, size, p.index) == TRUE)
@@ -745,16 +823,16 @@ BOOL CheckUp(BYTE board[], COORDINATE coordinate, ULL blocks, ULL size, ULL side
 
 
 
-COORDINATE GetCoordinate(unsigned int locationIndex, unsigned int side) {
+COORDINATE GetCoordinate(ULL locationIndex, UL side) {
 	COORDINATE c;
 	c.index = locationIndex + 1;
 	int m = c.index % side;
 	if (m == 0) {
-		c.y = floor(c.index / side);
+		c.y = (UL)(c.index / side);
 		c.x = side;
 	}
 	else {
-		c.y = floor(c.index / side) + 1;
+		c.y = (UL)(c.index / side + 1);
 		c.x = m;
 	}
 
@@ -767,26 +845,21 @@ ULL GetLocationIndex(COORDINATE* c, unsigned int side)
 	return c->index;
 }
 
-BOOL GetPieceOnBoard(BYTE board[], unsigned int blocks, unsigned int size, unsigned int cell)
+BOOL GetPieceOnBoard(BYTE board[], ULL blocks, ULL size, ULL cell)
 {
 	/*
 	* locate a piece on board
 	*/
-	int bit = cell % 8;
-	int block = cell / 8;
+	BYTE bit =cell % 8;
+	ULL block = cell / 8;
 #ifdef DEBUG
-	printf("cell:%d,bit:%d,block:%d\r\n",cell,bit,block);
+	printf("cell:%llu, bit:%d, block:%llu\r\n", cell, bit, block);
 #endif
 	return (board[block] & 1 << bit) ? TRUE : FALSE;
 }
 
-/// <summary>
-/// Add a piece on board sequentially 
-/// </summary>
-/// <param name="board">board address</param>
-/// <param name="size">board size</param>
-/// <returns>board address</returns>
-BYTE* AddPieceToBoard(BYTE board[], unsigned int blocks)
+
+BYTE* AddPieceToBoard(BYTE board[], ULL blocks)
 {
 	BOOL carry = FALSE;
 	unsigned int block = 0;
@@ -831,7 +904,7 @@ BYTE* RemovePieceFromBoard(BYTE board[], unsigned int blocks)
 	return board;
 }
 
-unsigned int GetPiecesCount(BYTE board[], unsigned int blocks, unsigned int size)
+ULL GetPiecesCount(BYTE board[], ULL blocks, ULL size)
 {
 	unsigned int pieces = 0;
 	do
@@ -855,14 +928,14 @@ unsigned int GetPiecesCount(BYTE board[], unsigned int blocks, unsigned int size
 	return pieces;
 }
 
-void PrintBoardIndex(BYTE board[], unsigned int blocks, unsigned int size, unsigned int side)
+void PrintBoardIndex(BYTE board[], ULL blocks, ULL size, ULL side)
 {
 	do
 	{
 
 		//从0开始，所以需要最大数减一
 		blocks--;
-		unsigned int bit = 0;
+		BYTE bit = 0;
 		do
 		{
 			//size也是从0开始，计算时需要最大数减一
@@ -870,8 +943,7 @@ void PrintBoardIndex(BYTE board[], unsigned int blocks, unsigned int size, unsig
 			//通过按位与运算得知该位是否为1
 			if ((board[blocks] & 1 << bit) > 0)
 			{
-				int r = side * side - (blocks * 8 + bit);
-				printf("%d,", r);
+				printf("%llu,", side * side - (blocks * 8 + bit));
 			}
 
 		} while (bit > 0);	//当bit大于0时，说明仍需要取下一位，
@@ -879,7 +951,7 @@ void PrintBoardIndex(BYTE board[], unsigned int blocks, unsigned int size, unsig
 	printf("\r\n");
 }
 
-void PrintBoard(BYTE board[], unsigned int blocks, unsigned int size, unsigned int side)
+void PrintBoard(BYTE board[], ULL blocks, ULL size, UL side)
 {
 	/*
 	* 假设有如下5*5棋盘
@@ -910,7 +982,7 @@ void PrintBoard(BYTE board[], unsigned int blocks, unsigned int size, unsigned i
 
 		//从0开始，所以需要最大数减一
 		blocks--;
-		unsigned int bit = 0;
+		BYTE bit = 0;
 		do
 		{
 			//size也是从0开始，计算时需要最大数减一
